@@ -57,7 +57,7 @@ pub fn from_redis_value(input : TokenStream) -> TokenStream {
             let field_ident = field.ident.as_ref().unwrap();
             let str_field_ident = format!("{}", field_ident);
             quote!{
-                #field_ident : redis::from_redis_value(field_hashmap.get(#str_field_ident).unwrap())?
+                #field_ident : redis::from_redis_value(field_hashmap.get(#str_field_ident).unwrap_or(&&redis::Value::Nil))?
             }
         })
     } else {
