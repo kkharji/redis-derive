@@ -1,6 +1,6 @@
 # redis-derive
 
-This crate implements the ```redis::FromRedisValue``` and ```redis::ToRedisArgs``` from [mitsuhiko / redis-rs](https://github.com/mitsuhiko/redis-rs) for any struct, this allows a seaming less type conversion between rust structs and Redis hash sets. This is more beneficial than JSON encoding the struct and storing the result in a Redis key because when saving as a Redis hash set, sorting algorithms can be performed without having to move data out of the database. There is also the benefit of being able to retrieve just one value of the struct in the database.
+This crate implements the ```redis::FromRedisValue``` and ```redis::ToRedisArgs``` traits from [mitsuhiko / redis-rs](https://github.com/mitsuhiko/redis-rs) for any struct, this allows a seaming less type conversion between rust structs and Redis hash sets. This is more beneficial than JSON encoding the struct and storing the result in a Redis key because when saving as a Redis hash set, sorting algorithms can be performed without having to move data out of the database. There is also the benefit of being able to retrieve just one value of the struct in the database.
 
 ## Usage 
 
