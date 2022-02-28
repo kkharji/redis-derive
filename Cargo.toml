@@ -3,7 +3,7 @@ name = "redis-derive"
 version = "0.1.1"
 edition = "2021"
 authors = ["Michael van Straten"]
-description = "This crate implements the redis::FromRedisValue and redis::ToRedisArgs from mitsuhiko / redis-rs for any struct"
+description = "This crate implements the redis::FromRedisValue and redis::ToRedisArgs traits from mitsuhiko / redis-rs for any struct"
 repository = "https://github.com/michaelvanstraten/redis-derive"
 license = "MIT"
 
