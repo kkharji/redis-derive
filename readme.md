@@ -1,18 +1,16 @@
 # redis-derive
 
-This crate allows a seamingless type conversiom between rust structs and redis hashsets. This i more benifical than json encoding the struct and stroring the result in a redis key because when saving as a redis hashset sorting algorithems can be performt without having to move data out of the databaser. There is also the benifit of being able to retrieve just one value of the struct in the database.
+This crate implements the ```redis::FromRedisValue``` and ```redis::ToRedisArgs``` from [mitsuhiko / redis-rs](https://github.com/mitsuhiko/redis-rs) for any struct, this allows a seaming less type conversion between rust structs and Redis hash sets. This is more beneficial than JSON encoding the struct and storing the result in a Redis key because when saving as a Redis hash set, sorting algorithms can be performed without having to move data out of the database. There is also the benefit of being able to retrieve just one value of the struct in the database.
 
 ## Usage 
 
-[ mitsuhiko / redis-rs](https://github.com/mitsuhiko/redis-rs)
-
-To use this crate at it to your dependencies and import the following to procidual macros.
+To use this crate at it to your dependencies and import the following to procedural macros.
 
 ```rust
     use redis_derive::{FromRedisValue, ToRedisArgs};
 ``` 
 
-Now the these marcos can be used to implements the traits ```redis::FromRedisValue``` and ```redis::ToRedisArgs``` for your decorated struct.
+Now the these Marcos can be used to implement the traits ```redis::FromRedisValue``` and ```redis::ToRedisArgs``` for your decorated struct.
 
 ```rust
 #[derive(ToRedisArgs, FromRedisVaule)]
@@ -23,7 +21,7 @@ struct MySuperCoolStruct {
 }
 
 ```
-These Procidual macros work for any struct in which every fields type also implements ToRedisArgs. So this would be allow: 
+These Procedural macros work for any struct in which every field's type also implements ToRedisArgs so this would be allowed: 
 ```rust 
 #[derive(ToRedisArgs, FromRedisVaule)]
 struct MySuperCoolStruct {
@@ -39,13 +37,13 @@ struct MySecondSuperCoolStruct {
 }
 ```
 
-## Problems and future continuasions 
+## Problems and future continuations 
 
-This Macro at this point sadly dosen't support enums. 
+At this point, it sadly doesn't support Enums. 
 
 ### Future Continuation
 
-- implementing a getter and setter for a redis derived type, i imagen something like this 
+- implementing a getter and setter for a Redis derived type, I imagine something like this 
 ```rust
     #[derive(RedisGetter, RedisSetter)]
     struct MySuperCoolStruct {
