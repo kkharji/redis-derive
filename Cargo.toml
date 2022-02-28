@@ -1,6 +1,6 @@
 [package]
 name = "redis-derive"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Michael van Straten"]
 description = "This crate implements the redis::FromRedisValue and redis::ToRedisArgs from mitsuhiko / redis-rs for any struct"
