@@ -1,6 +1,6 @@
 [package]
 name = "redis-derive"
-version = "0.1.3"
+version = "0.1.1"
 edition = "2021"
 authors = ["Michael van Straten"]
 repository = "https://github.com/michaelvanstraten/redis-derive"
