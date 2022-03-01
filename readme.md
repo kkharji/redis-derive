@@ -13,7 +13,7 @@ To use this crate at it to your dependencies and import the following to procedu
 Now the these Marcos can be used to implement the traits ```redis::FromRedisValue``` and ```redis::ToRedisArgs``` for your decorated struct.
 
 ```rust
-#[derive(ToRedisArgs, FromRedisVaule)]
+#[derive(ToRedisArgs, FromRedisValue)]
 struct MySuperCoolStruct {
     first_field : String,
     second_field : Option<i64>,

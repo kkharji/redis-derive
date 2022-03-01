@@ -1,14 +1,18 @@
 [package]
 name = "redis-derive"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Michael van Straten"]
-description = "This crate implements the redis::FromRedisValue and redis::ToRedisArgs traits from mitsuhiko / redis-rs for any struct"
 repository = "https://github.com/michaelvanstraten/redis-derive"
-license = "MIT"
-
+documentation = "https://docs.serde.rs/redis-derive/"
+keywords = ["redis", "serde", "serialization"]
+categories = ["encoding"]
+readme = "readme.md"
+description = "This crate implements the redis::FromRedisValue and redis::ToRedisArgs traits from mitsuhiko / redis-rs for any struct"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
+redis = "0.21.5"
 quote = "1.0.10"
 syn = {version = "1.0", features = ["extra-traits"]}
 
