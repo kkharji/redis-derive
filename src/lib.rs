@@ -63,16 +63,13 @@ pub fn to_redis_args(tokenstream : TokenStream) -> TokenStream {
     quote!{
         impl redis::ToRedisArgs for #struct_idententifier {
             fn write_redis_args<W : ?Sized + redis::RedisWrite>(&self, out: &mut W) {
-                let mut redis_args : Vec<Vec<u8>> = Vec::new();
                 #(
-                    redis_args = self.#field_idententifiers.to_redis_args();
-                    match redis_args.len() {
-                        0 => (),
-                        1 => {
+                    match self.#field_idententifiers.to_redis_args() {
+                        redis_args if redis_args.len() == 1 => {
                             out.write_arg_fmt(#field_idententifier_strs);
                             out.write_arg(&redis_args[0]);
                         },
-                        n => {
+                        redis_args => {
                             for args in redis_args.chunks(2) {
                                 out.write_arg_fmt(format!("{}.{}", #field_idententifier_strs, String::from_utf8(args[0].clone()).unwrap()));
                                 out.write_arg(&args[1])
