@@ -18,7 +18,7 @@ fn main() -> redis::RedisResult<()> {
         third_field : vec!["abc".to_owned(), "cba".to_owned()]
     };
 
-    let _ = redis::cmd("HMSET")
+    let _ = redis::cmd("HSET")
         .arg("test1")
         .arg(&test1)
         .query(&mut con)?;
