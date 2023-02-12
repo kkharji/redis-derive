@@ -60,7 +60,7 @@ pub fn to_redis_args(tokenstream: TokenStream) -> TokenStream {
 
     match abstract_syntax_tree.data {
         Struct(data_struct) => data_struct.derive_to_redis(type_identifier),
-        Enum(_) => todo!(),
+        Enum(data_enum) => data_enum.derive_to_redis(type_identifier),
         Union(_) => todo!(),
     }
 }
@@ -73,8 +73,8 @@ pub fn from_redis_value(tokenstream: TokenStream) -> TokenStream {
 
     match abstract_syntax_tree.data {
         Struct(data_struct) => data_struct.derive_from_redis(type_identifier),
-        syn::Data::Enum(_) => todo!(),
-        syn::Data::Union(_) => todo!(),
+        Enum(data_enum) => data_enum.derive_from_redis(type_identifier),
+        Union(_) => todo!(),
     }
 }
 
