@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use redis::Commands;
 use redis_derive::{FromRedisValue, ToRedisArgs};
 
@@ -7,18 +5,6 @@ use redis_derive::{FromRedisValue, ToRedisArgs};
 enum Color {
     Red,
     Green,
-}
-
-impl FromStr for Color {
-    type Err = Box<dyn std::error::Error>;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "Red" => Color::Red,
-            "Green" => Color::Green,
-            v => panic!("{v} is not valid varient"),
-        })
-    }
 }
 
 #[derive(FromRedisValue, ToRedisArgs, Debug)]
