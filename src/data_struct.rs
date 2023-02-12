@@ -1,5 +1,4 @@
 use super::{DeriveFromRedisArgs, DeriveToRedisArgs};
-
 use quote::quote;
 use syn::{DataStruct, Fields, Ident};
 
@@ -41,10 +40,11 @@ impl DeriveToRedisArgs for DataStruct {
                 }.into()
             }
             Fields::Unnamed(fields_unnamed) => {
-                let (stringified_idents, idents) : (Vec<String>, Vec<usize>) = (0..fields_unnamed.unnamed.len())
-                    .into_iter()
-                    .map(|index| (index.to_string(), index))
-                    .unzip();
+                let (stringified_idents, idents): (Vec<String>, Vec<usize>) =
+                    (0..fields_unnamed.unnamed.len())
+                        .into_iter()
+                        .map(|index| (index.to_string(), index))
+                        .unzip();
                 quote!{
                     impl redis::ToRedisArgs for #type_ident {
                         fn write_redis_args<W : ?Sized + redis::RedisWrite>(&self, out: &mut W) {
@@ -77,7 +77,7 @@ impl DeriveToRedisArgs for DataStruct {
 }
 
 impl DeriveFromRedisArgs for DataStruct {
-    fn derive_from_redis(&self, type_ident : Ident) -> proc_macro::TokenStream {
+    fn derive_from_redis(&self, type_ident: Ident) -> proc_macro::TokenStream {
         match &self.fields {
             Fields::Named(fields_named) => {
                 let (stringified_idents, idents): (Vec<String>, Vec<&Ident>) = fields_named
@@ -119,7 +119,7 @@ impl DeriveFromRedisArgs for DataStruct {
                                                 fields_hashmap.insert(full_identifier, values[1].clone());
                                             }
                                         }
-                                    }   
+                                    }
                                     Ok(Self {
                                         #(#idents: redis::from_redis_value(
                                                 fields_hashmap.get(
@@ -131,19 +131,20 @@ impl DeriveFromRedisArgs for DataStruct {
                                     })
                                 },
                                 _ => Err(redis::RedisError::from((
-                                    redis::ErrorKind::TypeError, 
+                                    redis::ErrorKind::TypeError,
                                     "the data returned from the redis database was not in the bulk data format or the length of the bulk data is not devisable by two"))
                                 )
                             }
                         }
                     }
                 }.into()
-            },
+            }
             Fields::Unnamed(fields_unnamed) => {
-                let (stringified_idents, idents) : (Vec<String>, Vec<usize>) = (0..fields_unnamed.unnamed.len())
-                    .into_iter()
-                    .map(|index| (index.to_string(), index))
-                    .unzip();
+                let (stringified_idents, idents): (Vec<String>, Vec<usize>) =
+                    (0..fields_unnamed.unnamed.len())
+                        .into_iter()
+                        .map(|index| (index.to_string(), index))
+                        .unzip();
                 quote! {
                     impl redis::FromRedisValue for #type_ident {
                         fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
@@ -171,7 +172,7 @@ impl DeriveFromRedisArgs for DataStruct {
                                                 fields_hashmap.insert(full_identifier, values[1].clone());
                                             }
                                         }
-                                    }   
+                                    }
                                     Ok(Self {
                                         #(
                                             #idents: redis::from_redis_value(fields_hashmap.get(#stringified_idents)
@@ -181,21 +182,23 @@ impl DeriveFromRedisArgs for DataStruct {
                                     })
                                 },
                                 _ => Err(redis::RedisError::from((
-                                    redis::ErrorKind::TypeError, 
+                                    redis::ErrorKind::TypeError,
                                     "the data returned from the redis database was not in the bulk data format or the length of the bulk data is not devisable by two"))
                                 )
                             }
                         }
                     }
                 }.into()
-            },
+            }
             Fields::Unit => quote! {
                 impl redis::FromRedisValue for #type_ident {
                     fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
                         #type_ident{}
                     }
                 }
-            }.into(),
+            }
+            .into(),
         }
     }
 }
+
