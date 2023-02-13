@@ -1,9 +1,14 @@
 use super::{DeriveFromRedisArgs, DeriveToRedisArgs};
+use crate::util::ParsedAttributeMap;
 use quote::quote;
 use syn::{DataStruct, Fields, Ident};
 
 impl DeriveToRedisArgs for DataStruct {
-    fn derive_to_redis(&self, type_ident: Ident) -> proc_macro::TokenStream {
+    fn derive_to_redis(
+        &self,
+        type_ident: Ident,
+        _attrs: ParsedAttributeMap,
+    ) -> proc_macro::TokenStream {
         match &self.fields {
             Fields::Named(fields_named) => {
                 let (stringified_idents, idents): (Vec<String>, Vec<&Ident>) = fields_named
@@ -77,7 +82,11 @@ impl DeriveToRedisArgs for DataStruct {
 }
 
 impl DeriveFromRedisArgs for DataStruct {
-    fn derive_from_redis(&self, type_ident: Ident) -> proc_macro::TokenStream {
+    fn derive_from_redis(
+        &self,
+        type_ident: Ident,
+        _attrs: ParsedAttributeMap,
+    ) -> proc_macro::TokenStream {
         match &self.fields {
             Fields::Named(fields_named) => {
                 let (stringified_idents, idents): (Vec<String>, Vec<&Ident>) = fields_named
@@ -201,4 +210,3 @@ impl DeriveFromRedisArgs for DataStruct {
         }
     }
 }
-

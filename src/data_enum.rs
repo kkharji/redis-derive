@@ -1,29 +1,37 @@
 use super::{DeriveFromRedisArgs, DeriveToRedisArgs};
-
+use crate::util::{self, ParsedAttributeMap};
 use quote::quote;
-use syn::{DataEnum, Fields, Ident};
+use syn::{self, DataEnum, Fields, Ident};
 
 impl DeriveToRedisArgs for DataEnum {
-    fn derive_to_redis(&self, type_ident: Ident) -> proc_macro::TokenStream {
+    fn derive_to_redis(
+        &self,
+        type_ident: Ident,
+        attrs: ParsedAttributeMap,
+    ) -> proc_macro::TokenStream {
         let is_unit = self.variants.iter().all(|v| v.fields == Fields::Unit);
         if !is_unit {
             panic!("Only Enums without fields are supported");
         }
 
-        let variant_names = self.variants.iter().map(|variant| &variant.ident);
+        let variant_names = self.variants.iter().map(|v| &v.ident).collect::<Vec<_>>();
+        let rename_all = attrs.get("rename_all").map(|v| v.as_str());
 
-        let match_arms = variant_names.map(|variant_name| {
-            quote! {
-                #type_ident::#variant_name => {
-                    out.write_arg(stringify!(#variant_name).as_bytes());
+        let match_arms = variant_names
+            .iter()
+            .map(|v| (v, util::transform_variant(&v.to_string(), rename_all)))
+            .map(|(name, value)| {
+                quote! {
+                    #type_ident::#name => {
+                        out.write_arg(#value.as_bytes());
+                    }
                 }
-            }
-        });
+            });
 
         quote! {
             impl redis::ToRedisArgs for #type_ident {
                 fn write_redis_args<W: ?Sized + redis::RedisWrite>(&self, out: &mut W) {
-                    match self { #(#match_arms),* }
+                   match self { #(#match_arms),* }
                 }
             }
         }
@@ -32,25 +40,37 @@ impl DeriveToRedisArgs for DataEnum {
 }
 
 impl DeriveFromRedisArgs for DataEnum {
-    fn derive_from_redis(&self, type_ident: Ident) -> proc_macro::TokenStream {
+    fn derive_from_redis(
+        &self,
+        type_ident: Ident,
+        attrs: ParsedAttributeMap,
+    ) -> proc_macro::TokenStream {
         let is_unit = self.variants.iter().all(|v| v.fields == Fields::Unit);
         if !is_unit {
             panic!("Only Enums without fields are supported");
         }
 
-        let match_arms = self.variants.iter().map(|variant| {
-            let variant_name = &variant.ident;
-            quote! {
-                stringify!(#variant_name) => Ok(#type_ident::#variant_name),
-            }
-        });
-
-        let variants_str = self
+        let rename_all = attrs.get("rename_all").map(|v| v.as_str());
+        let (variants_str, match_arms): (Vec<_>, Vec<_>) = self
             .variants
             .iter()
-            .map(|variant| variant.ident.to_string())
-            .collect::<Vec<_>>()
-            .join(", ");
+            .map(|v| {
+                (
+                    &v.ident,
+                    util::transform_variant(&v.ident.to_string(), rename_all),
+                )
+            })
+            .map(|(ident, value)| {
+                (
+                    value.clone(),
+                    quote! {
+                        #value => Ok(#type_ident::#ident),
+                    },
+                )
+            })
+            .unzip();
+
+        let variants_str = variants_str.join(", ");
 
         quote! {
             impl redis::FromRedisValue for #type_ident {

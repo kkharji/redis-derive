@@ -48,40 +48,44 @@ use syn::{
     Data::{Enum, Struct, Union},
     DeriveInput, Ident,
 };
+use util::ParsedAttributeMap;
 
 mod data_enum;
 mod data_struct;
+mod util;
 
-#[proc_macro_derive(ToRedisArgs)]
+#[proc_macro_derive(ToRedisArgs, attributes(redis))]
 /// This Derive Macro is responsible for Implementing the [ToRedisArgs](redis::ToRedisArgs) trait for the decorated struct.
 pub fn to_redis_args(tokenstream: TokenStream) -> TokenStream {
     let abstract_syntax_tree = parse_macro_input!(tokenstream as DeriveInput);
     let type_identifier = abstract_syntax_tree.ident;
+    let attr_map = util::parse_attributes(&abstract_syntax_tree.attrs);
 
     match abstract_syntax_tree.data {
-        Struct(data_struct) => data_struct.derive_to_redis(type_identifier),
-        Enum(data_enum) => data_enum.derive_to_redis(type_identifier),
+        Struct(data_struct) => data_struct.derive_to_redis(type_identifier, attr_map),
+        Enum(data_enum) => data_enum.derive_to_redis(type_identifier, attr_map),
         Union(_) => todo!(),
     }
 }
 
-#[proc_macro_derive(FromRedisValue)]
+#[proc_macro_derive(FromRedisValue, attributes(redis))]
 /// This Derive Macro is responsible for Implementing the [ToRedisArgs](redis::FromRedisValue) trait for the decorated struct.
 pub fn from_redis_value(tokenstream: TokenStream) -> TokenStream {
     let abstract_syntax_tree = parse_macro_input!(tokenstream as DeriveInput);
     let type_identifier = abstract_syntax_tree.ident;
+    let attr_map = util::parse_attributes(&abstract_syntax_tree.attrs);
 
     match abstract_syntax_tree.data {
-        Struct(data_struct) => data_struct.derive_from_redis(type_identifier),
-        Enum(data_enum) => data_enum.derive_from_redis(type_identifier),
+        Struct(data_struct) => data_struct.derive_from_redis(type_identifier, attr_map),
+        Enum(data_enum) => data_enum.derive_from_redis(type_identifier, attr_map),
         Union(_) => todo!(),
     }
 }
 
 trait DeriveToRedisArgs {
-    fn derive_to_redis(&self, type_ident: Ident) -> TokenStream;
+    fn derive_to_redis(&self, type_ident: Ident, attrs: ParsedAttributeMap) -> TokenStream;
 }
 
 trait DeriveFromRedisArgs {
-    fn derive_from_redis(&self, type_ident: Ident) -> TokenStream;
+    fn derive_from_redis(&self, type_ident: Ident, attrs: ParsedAttributeMap) -> TokenStream;
 }
