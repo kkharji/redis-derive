@@ -55,7 +55,24 @@ mod data_struct;
 mod util;
 
 #[proc_macro_derive(ToRedisArgs, attributes(redis))]
-/// This Derive Macro is responsible for Implementing the [ToRedisArgs](redis::ToRedisArgs) trait for the decorated struct.
+/// This macro implements the [ToRedisArgs](redis::ToRedisArgs) trait for a given struct or enum.
+/// It generates code that serializes the fields of the struct or the variants
+/// of the enum to Redis arguments.
+///
+/// # Attributes
+///
+/// This macro also supports the following attribute on the entire struct or enum:
+///
+/// - `redis(rename_all = "...")`: This attribute specifies a rule for transforming the variants to Redis argument names. (only enums supported for now)
+///
+///   The possible values are:
+///   - `"lowercase"`: The name is converted to lowercase.
+///   - `"UPPERCASE"`: The name is converted to uppercase.
+///   - `"PascalCase"`: The name is converted to PascalCase.
+///   - `"camelCase"`: The name is converted to camelCase.
+///   - `"snake_case"`: The name is converted to snake_case.
+///   - `"kebab-case"`: The name is converted to kebab-case.
+///
 pub fn to_redis_args(tokenstream: TokenStream) -> TokenStream {
     let abstract_syntax_tree = parse_macro_input!(tokenstream as DeriveInput);
     let type_identifier = abstract_syntax_tree.ident;
@@ -69,7 +86,24 @@ pub fn to_redis_args(tokenstream: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_derive(FromRedisValue, attributes(redis))]
-/// This Derive Macro is responsible for Implementing the [ToRedisArgs](redis::FromRedisValue) trait for the decorated struct.
+/// This macro implements the [FromRedisValue](redis::FromRedisValue) trait for a given struct or enum.
+/// It generates code that deserialize the fields of the struct or the variants
+/// of the enum from [Value](redis::Value)
+///
+/// # Attributes
+///
+/// This macro also supports the following attribute on the entire struct or enum:
+///
+/// - `redis(rename_all = "...")`: This attribute specifies a rule for parsing variant (only enums supported for now) .
+///
+///   The possible values are:
+///   - `"lowercase"`: Generate variant from lowercase.
+///   - `"UPPERCASE"`: Generate variant from uppercase.
+///   - `"PascalCase"`: Generate variant from PascalCase.
+///   - `"camelCase"`: Generate variant from camelCase.
+///   - `"snake_case"`: Generate variant from snake_case.
+///   - `"kebab-case"`: Generate variant from kebab-case.
+///
 pub fn from_redis_value(tokenstream: TokenStream) -> TokenStream {
     let abstract_syntax_tree = parse_macro_input!(tokenstream as DeriveInput);
     let type_identifier = abstract_syntax_tree.ident;

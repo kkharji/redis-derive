@@ -36,6 +36,8 @@ pub fn parse_attributes(attributes: &[Attribute]) -> ParsedAttributeMap {
 }
 
 /// Transforms a variant value into the desired case style based on the provided `rename_all` option.
+///
+/// This function panics if an invalid `rename_all` value is provided.
 pub fn transform_variant(variant_value: &str, rename_all: Option<&str>) -> String {
     let renamed = rename_all.map(|rule| match rule {
         "lowercase" => variant_value.to_lowercase(),
