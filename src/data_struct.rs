@@ -1,5 +1,6 @@
-use super::{DeriveFromRedisArgs, DeriveToRedisArgs};
 use crate::util::ParsedAttributeMap;
+use crate::{DeriveFromRedisArgs, DeriveToRedisArgs};
+
 use quote::quote;
 use syn::{DataStruct, Fields, Ident};
 
