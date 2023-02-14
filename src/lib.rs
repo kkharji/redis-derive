@@ -102,6 +102,7 @@ use proc_macro::TokenStream;
 use syn::Data::{Enum, Struct, Union};
 use syn::{parse_macro_input, DeriveInput, Ident};
 
+mod constants;
 mod data_enum;
 mod data_struct;
 mod util;

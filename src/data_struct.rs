@@ -1,6 +1,6 @@
 use super::{DeriveFromRedisArgs, DeriveToRedisArgs};
-use crate::util;
 use crate::util::ParsedAttributeMap;
+use crate::{constants::FROM_VALUE_ERROR_STR, util};
 use quote::quote;
 use syn::{DataStruct, Fields, Ident};
 
@@ -116,47 +116,41 @@ impl DeriveFromRedisArgs for DataStruct {
             }
         };
 
+        let err = quote!(Err(redis::RedisError::from((redis::ErrorKind::TypeError, #FROM_VALUE_ERROR_STR))));
+
         quote! {
             impl redis::FromRedisValue for #type_ident {
                 fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
-                    match v {
-                        redis::Value::Bulk(bulk_data) if bulk_data.len() % 2 == 0 => {
-                            let mut fields_hashmap = std::collections::HashMap::new();
-                            for values in bulk_data.chunks(2) {
-                                let full_identifier : String = redis::from_redis_value(&values[0])?;
-                                match full_identifier.split_once(".") {
-                                    Some((field_identifier, split_of_section)) => {
-                                        match fields_hashmap.get_mut(field_identifier) {
-                                            Some(redis::Value::Bulk(bulk)) => {
-                                                bulk.push(redis::Value::Data(split_of_section.chars().map(|c| c as u8).collect()));
-                                                bulk.push(values[1].clone())
-                                            },
-                                            _ => {
-                                                let mut new_bulk : Vec<redis::Value> = Vec::new();
-                                                new_bulk.push(redis::Value::Data(split_of_section.chars().map(|c| c as u8).collect()));
-                                                new_bulk.push(values[1].clone());
-                                                fields_hashmap.insert(field_identifier.to_owned(), redis::Value::Bulk(new_bulk));
-                                            }
-                                        }
-                                    },
-                                    None => {
-                                        fields_hashmap.insert(full_identifier, values[1].clone());
-                                    }
-                                }
-                            }
+                    use redis::{from_redis_value, Value};
 
-                            Ok(Self {
-                                #(#idents: redis::from_redis_value(
-                                        fields_hashmap.get(#stringified_idents).unwrap_or(&redis::Value::Nil)
-                                    )?,
-                                )*
-                            })
-                        },
-                        _ => Err(redis::RedisError::from((
-                            redis::ErrorKind::TypeError,
-                            "the data returned from the redis database was not in the bulk data format or the length of the bulk data is not devisable by two"))
-                            )
+                    let Value::Bulk(bulk_data) = v else { return #err; };
+
+                    if bulk_data.len() % 2 != 0 { return #err; };
+
+                    let mut fm = std::collections::HashMap::new();
+
+                    for values in bulk_data.chunks(2) {
+                        let full_identifier: String = from_redis_value(&values[0])?;
+                        let Some((field_identifier, split_of_section)) = full_identifier.split_once(".") else {
+                            fm.insert(full_identifier, values[1].clone());
+                            continue;
+                        };
+
+                        let Some(Value::Bulk(bulk)) = fm.get_mut(field_identifier) else {
+                            let mut new_bulk = Vec::new();
+                            new_bulk.push(Value::Data(split_of_section.chars().map(|c| c as u8).collect()));
+                            new_bulk.push(values[1].clone());
+                            fm.insert(field_identifier.to_owned(), Value::Bulk(new_bulk));
+                            continue;
+                        };
+
+                        bulk.push(Value::Data(split_of_section.chars().map(|c| c as u8).collect()));
+                        bulk.push(values[1].clone());
                     }
+
+                    Ok(Self {
+                        #(#idents: from_redis_value(fm.get(#stringified_idents).unwrap_or(&redis::Value::Nil))?,)*
+                    })
                 }
             }
         }
