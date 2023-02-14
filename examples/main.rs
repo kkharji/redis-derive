@@ -19,7 +19,9 @@ enum Group {
 }
 
 #[derive(FromRedisValue, ToRedisArgs, Debug)]
+#[redis(rename_all = "camelCase")]
 struct MySuperCoolStruct {
+    #[redis(rename = "id")]
     first_field: String,
     second_field: Option<i64>,
     third_field: Vec<String>,
@@ -50,6 +52,8 @@ fn main() -> redis::RedisResult<()> {
 
     let db_test1: HashMap<String, String> = con.hgetall("test1")?;
     assert_eq!(db_test1["group"], "admin_group");
+    assert_eq!(db_test1["id"], "Hello World");
+    assert_eq!(db_test1["secondField"], "42");
 
     Ok(())
 }
