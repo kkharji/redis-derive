@@ -1,7 +1,8 @@
+use redis_derive::{FromRedisValue, ToRedisArgs};
+
 use std::collections::HashMap;
 
 use redis::Commands;
-use redis_derive::{FromRedisValue, ToRedisArgs};
 
 #[derive(FromRedisValue, ToRedisArgs, Debug)]
 enum Color {

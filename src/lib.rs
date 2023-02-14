@@ -15,7 +15,7 @@ To use this crate at it to your dependencies and import the following to procedu
 use redis_derive::{FromRedisValue, ToRedisArgs};
 ```
 
-Now the these Marcos can be used to implement the traits ```redis::FromRedisValue``` and ```redis::ToRedisArgs``` for your decorated struct.
+Now the these Marcos can be used to implement the traits [`FromRedisValue`](redis::FromRedisValue) and [`ToRedisArgs`](redis::ToRedisArgs) for your decorated struct.
 
 ```rust
 #[derive(ToRedisArgs, FromRedisValue)]
@@ -26,7 +26,7 @@ struct MySuperCoolStruct {
 }
 
 ```
-These Procedural macros work for any struct in which every field's type also implements ToRedisArgs so this would be allowed:
+These Procedural macros work for any struct in which every field's type also implements [`ToRedisArgs`](redis::ToRedisArgs) so this would be allowed:
 ```rust
 #[derive(ToRedisArgs, FromRedisVaule)]
 struct MySuperCoolStruct {
@@ -37,7 +37,7 @@ struct MySuperCoolStruct {
 
 #[derive(ToRedisArgs, FromRedisVaule)]
 struct MySecondSuperCoolStruct {
-    fourth_field : Strin,
+    fourth_field : String,
     inner_struct : MySuperCoolStruct
 }
 ```
@@ -110,13 +110,13 @@ mod util;
 /**
     This macro implements the [`ToRedisArgs`](redis::ToRedisArgs) trait for a given struct or enum.
     It generates code that serializes the fields of the struct or the variants
-    of the enum to redis arguments.
+    of the enum to Redis arguments.
 
     # Attributes
 
     This macro also supports the following attribute on the entire struct or enum:
 
-    - `redis(rename_all = "...")`: this attribute specifies a rule for transforming the variants to redis argument names. (only enums supported for now)
+    - `redis(rename_all = "...")`: this attribute specifies a rule for transforming the variants to Redis argument names. (only enums supported for now)
 
     The possible values are:
     - `"lowercase"`: the name is converted to lowercase.

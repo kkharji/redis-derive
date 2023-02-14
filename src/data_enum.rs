@@ -1,5 +1,6 @@
-use super::{DeriveFromRedisArgs, DeriveToRedisArgs};
 use crate::util::{self, ParsedAttributeMap};
+use crate::{DeriveFromRedisArgs, DeriveToRedisArgs};
+
 use quote::quote;
 use syn::{self, DataEnum, Fields, Ident};
 

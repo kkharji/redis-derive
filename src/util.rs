@@ -4,9 +4,11 @@ use syn::{Attribute, Meta, NestedMeta};
 
 pub type ParsedAttributeMap = HashMap<String, String>;
 
-/// Parses the Redis attributes in the given list of attributes, and returns a
-/// mapping of attribute names to their string values.
-pub fn parse_attributes(attributes: &[Attribute]) -> ParsedAttributeMap {
+/*
+    Parses the Redis attributes in the given list of attributes, and returns a
+    mapping of attribute names to their string values.
+*/
+pub(crate) fn parse_attributes(attributes: &[Attribute]) -> ParsedAttributeMap {
     let mut attr_map = HashMap::new();
     for attribute in attributes {
         if !attribute.path.is_ident("redis") {
@@ -35,10 +37,11 @@ pub fn parse_attributes(attributes: &[Attribute]) -> ParsedAttributeMap {
     attr_map
 }
 
-/// Transforms a variant value into the desired case style based on the provided `rename_all` option.
-///
-/// This function panics if an invalid `rename_all` value is provided.
-pub fn transform_variant(variant_value: &str, rename_all: Option<&str>) -> String {
+/*
+    Transforms a variant value into the desired case style based on the provided `rename_all` option.
+    This function panics if an invalid `rename_all` value is provided.
+*/
+pub(crate) fn transform_variant(variant_value: &str, rename_all: Option<&str>) -> String {
     let renamed = rename_all.map(|rule| match rule {
         "lowercase" => variant_value.to_lowercase(),
         "UPPERCASE" => variant_value.to_uppercase(),
