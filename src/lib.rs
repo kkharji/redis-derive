@@ -142,7 +142,7 @@ pub fn to_redis_args(tokenstream: TokenStream) -> TokenStream {
 /**
     This macro implements the [`FromRedisValue`](redis::FromRedisValue) trait for a given struct or enum.
     It generates code that deserialize the fields of the struct or the variants
-    of the enum from [Value](redis::Value)
+    of the enum from [`Value`](redis::Value)
 
     # Attributes
 
