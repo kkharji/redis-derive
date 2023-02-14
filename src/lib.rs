@@ -109,22 +109,27 @@ mod util;
 #[proc_macro_derive(ToRedisArgs, attributes(redis))]
 /**
     This macro implements the [`ToRedisArgs`](redis::ToRedisArgs) trait for a given struct or enum.
+
     It generates code that serializes the fields of the struct or the variants
     of the enum to Redis arguments.
 
     # Attributes
 
-    This macro also supports the following attribute on the entire struct or enum:
+    The following attributes are supported on the entire struct or entire enum:
 
-    - `redis(rename_all = "...")`: this attribute specifies a rule for transforming the variants to Redis argument names. (only enums supported for now)
+    - `redis(rename_all = "...")`: This attribute specifies a rule for converting variant or fields casing.
 
-    The possible values are:
-    - `"lowercase"`: the name is converted to lowercase.
-    - `"uppercase"`: the name is converted to uppercase.
-    - `"pascalcase"`: the name is converted to pascal case.
-    - `"camelcase"`: the name is converted to camel case.
-    - `"snake_case"`: the name is converted to snake_case.
-    - `"kebab-case"`: the name is converted to kebab-case.
+      The possible values are:
+      - `"lowercase"`: serialize variant or struct field to lowercase.
+      - `"UPPERCASE"`: serialize variant or struct field to uppercase.
+      - `"PascalCase"`: serialize variant or struct field to PascalCase.
+      - `"camelCase"`: serialize variant or struct field to camelCase.
+      - `"snake_case"`: serialize variant or struct field to snake_case.
+      - `"kebab-case"`: serialize variant or struct field to kebab-case.
+
+    The following attributes are supported on struct fields:
+
+    - `redis(rename = "new_name")`: serialize this field name instead or actual struct field name.
 */
 pub fn to_redis_args(tokenstream: TokenStream) -> TokenStream {
     let abstract_syntax_tree = parse_macro_input!(tokenstream as DeriveInput);
@@ -141,22 +146,27 @@ pub fn to_redis_args(tokenstream: TokenStream) -> TokenStream {
 #[proc_macro_derive(FromRedisValue, attributes(redis))]
 /**
     This macro implements the [`FromRedisValue`](redis::FromRedisValue) trait for a given struct or enum.
+
     It generates code that deserialize the fields of the struct or the variants
     of the enum from [`Value`](redis::Value)
 
     # Attributes
 
-    This macro also supports the following attribute on the entire struct or enum:
+    The following attributes are supported on the entire struct or entire enum:
 
-    - `redis(rename_all = "...")`: This attribute specifies a rule for parsing variant (only enums supported for now) .
+    - `redis(rename_all = "...")`: This attribute specifies a rule for parsing variant or fields
 
-    The possible values are:
-    - `"lowercase"`: Generate variant from lowercase.
-    - `"UPPERCASE"`: Generate variant from uppercase.
-    - `"PascalCase"`: Generate variant from pascal Case.
-    - `"camelCase"`: Generate variant from camel Case.
-    - `"snake_case"`: Generate variant from snake_case.
-    - `"kebab-case"`: Generate variant from kebab-case.
+      The possible values are:
+      - `"lowercase"`: Deserialize from lowercase.
+      - `"UPPERCASE"`: Deserialize from uppercase.
+      - `"PascalCase"`: Deserialize from PascalCase.
+      - `"camelCase"`: Deserialize from camelCase.
+      - `"snake_case"`: Deserialize from snake_case.
+      - `"kebab-case"`: Deserialize from kebab-case.
+
+    The following attributes are supported on struct fields:
+
+    - `redis(rename = "new_name")`: parse this field name instead or actual struct field name
 */
 pub fn from_redis_value(tokenstream: TokenStream) -> TokenStream {
     let abstract_syntax_tree = parse_macro_input!(tokenstream as DeriveInput);
