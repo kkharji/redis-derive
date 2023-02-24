@@ -76,19 +76,21 @@ impl DeriveFromRedisArgs for DataEnum {
         quote! {
             impl redis::FromRedisValue for #type_ident {
                 fn from_redis_value(v: &redis::Value) -> Result<Self, redis::RedisError> {
-                    match v {
-                        redis::Value::Data(s) => match std::str::from_utf8(&s[..])? {
-                            #(#match_arms)*
-                            v => Err(redis::RedisError::from((
-                                redis::ErrorKind::TypeError,
-                                "Invalid enum variant:",
-                                format!("{}, Expected one of: {}", v, #variants_str),
-                            ))),
+                    use redis::{ErrorKind::TypeError, Value};
+
+                    let Value::Data(data) = v else {
+                        let msg = format!("{:?}", v);
+                        return Err((TypeError, "Expected Redis string, got:", msg).into());
+                    };
+
+                    let value = std::str::from_utf8(&data[..])?;
+
+                    match value {
+                        #(#match_arms)*
+                        v => {
+                            let msg = format!("{}, Expected one of: {}", v, #variants_str);
+                            Err((TypeError, "Invalid enum variant:", msg).into())
                         },
-                        v => Err(redis::RedisError::from((
-                            redis::ErrorKind::TypeError,
-                            "Expected Redis string, got:", format!("{:?}", v)
-                        ))),
                     }
                 }
             }

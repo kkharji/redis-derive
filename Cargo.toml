@@ -2,8 +2,8 @@
 name = "redis-derive"
 version = "0.1.7"
 edition = "2021"
-authors = ["Michael van Straten"]
-repository = "https://github.com/michaelvanstraten/redis-derive"
+authors = ["Michael van Straten", "kkharji"]
+repository = "https://github.com/kkharji/redis-derive"
 documentation = "https://docs.rs/redis-derive/"
 keywords = ["redis", "serde", "serialization"]
 categories = ["encoding"]

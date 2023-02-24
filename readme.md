@@ -8,6 +8,8 @@ sorting algorithms can be performed without having to move data out of the datab
 
 There is also the benefit of being able to retrieve just one value of the struct in the database.
 
+Initial development was done by @Michaelvanstraten 🙏🏽.
+
 ## Usage and Examples
 
 To use this crate at it to your dependencies and import the following to procedural macros.
@@ -74,27 +76,6 @@ fn main() -> redis::RedisResult<()> {
     println!("send : {:#?}, got : {:#?}", test1, db_test1);
     Ok(())
 }
-```
-
-## Problems and future continuations
-
-At this point, enums can not have any fields on them.
-
-### Future Continuation
-
-- implementing a getter and setter for a Redis derived type, I imagine something like this
-```rust
-    #[derive(RedisGetter, RedisSetter)]
-    struct MySuperCoolStruct {
-        first_field : String,
-        second_field : Option<i64>,
-        third_field : Vec<String>
-    }
-    fn somefn() {
-        let mut redis_client = /* geting some connection to redis db */;
-        let first_field : String = MySuperCoolStruct::first_field::get(&redis_client, key : "MyRedisKeyForStruct");
-        MySuperCoolStruct::first_field::set(&redis_client, key : "MyRedisKeyForStruct", value : String::from("test"));
-    }
 ```
 
 License: MIT OR Apache-2.0
