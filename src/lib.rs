@@ -18,6 +18,7 @@ use redis_derive::{FromRedisValue, ToRedisArgs};
 Now the these Marcos can be used to implement the traits [`FromRedisValue`](redis::FromRedisValue) and [`ToRedisArgs`](redis::ToRedisArgs) for your decorated struct.
 
 ```rust
+use redis_derive::{FromRedisValue, ToRedisArgs};
 #[derive(ToRedisArgs, FromRedisValue)]
 struct MySuperCoolStruct {
     first_field : String,
@@ -28,21 +29,22 @@ struct MySuperCoolStruct {
 ```
 These Procedural macros work for any struct in which every field's type also implements [`ToRedisArgs`](redis::ToRedisArgs) so this would be allowed:
 ```rust
-#[derive(ToRedisArgs, FromRedisVaule)]
+use redis_derive::{FromRedisValue, ToRedisArgs};
+#[derive(ToRedisArgs, FromRedisValue)]
 struct MySuperCoolStruct {
     first_field : String,
     second_field : Option<i64>,
     third_field : Vec<String>
 }
 
-#[derive(ToRedisArgs, FromRedisVaule)]
+#[derive(ToRedisArgs, FromRedisValue)]
 struct MySecondSuperCoolStruct {
     fourth_field : String,
     inner_struct : MySuperCoolStruct
 }
 ```
 ## Complete Example
-```
+```rust,ignore
 use redis::Commands;
 use redis_derive::{FromRedisValue, ToRedisArgs};
 
@@ -63,7 +65,7 @@ fn main() -> redis::RedisResult<()> {
         third_field : vec!["abc".to_owned(), "cba".to_owned()]
     };
 
-    let _ = redis::cmd("HSET")
+    let _: () = redis::cmd("HSET")
         .arg("test1")
         .arg(&test1)
         .query(&mut con)?;
@@ -82,7 +84,7 @@ At this point, enums can not have any fields on them.
 ## Future Continuation
 
 - implementing a getter and setter for a Redis derived type, I imagine something like this
-```rust
+```rust,ignore
     #[derive(RedisGetter, RedisSetter)]
     struct MySuperCoolStruct {
         first_field : String,
