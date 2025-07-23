@@ -1,213 +1,272 @@
-use crate::util::ParsedAttributeMap;
-use crate::{DeriveFromRedisArgs, DeriveToRedisArgs};
-
+use crate::util::{self, ParsedAttributeMap};
 use quote::quote;
 use syn::{DataStruct, Fields, Ident};
 
-impl DeriveToRedisArgs for DataStruct {
-    fn derive_to_redis(
-        &self,
-        type_ident: Ident,
-        _attrs: ParsedAttributeMap,
-    ) -> proc_macro::TokenStream {
-        match &self.fields {
-            Fields::Named(fields_named) => {
-                let (stringified_idents, idents): (Vec<String>, Vec<&Ident>) = fields_named
-                    .named
-                    .iter()
-                    .map(|named_field| {
-                        let ident = named_field
-                            .ident
-                            .as_ref()
-                            .expect("there should be an ident on this field");
-                        (ident.to_string(), ident)
-                    })
-                    .unzip();
+pub fn derive_to_redis_struct(
+    data_struct: DataStruct,
+    type_ident: Ident,
+    attrs: ParsedAttributeMap,
+) -> proc_macro::TokenStream {
+    match &data_struct.fields {
+        Fields::Named(fields_named) => {
+            let mut regular_fields = Vec::new();
 
-                quote! {
-                    impl redis::ToRedisArgs for #type_ident {
-                        fn write_redis_args<W : ?Sized + redis::RedisWrite>(&self, out: &mut W) {
-                            #(
-                                match self.#idents.to_redis_args() {
-                                    redis_args if redis_args.len() == 1 => {
-                                        out.write_arg_fmt(#stringified_idents);
-                                        out.write_arg(&redis_args[0]);
-                                    },
-                                    redis_args => {
-                                        for args in redis_args.chunks(2) {
-                                            out.write_arg_fmt(format!("{}.{}", #stringified_idents, String::from_utf8(args[0].clone()).unwrap()));
-                                            out.write_arg(&args[1])
-                                        }
-                                    }
-                                }
-                            )*
-                        }
-                    }
-                }.into()
-            }
-            Fields::Unnamed(fields_unnamed) => {
-                let (stringified_idents, idents): (Vec<String>, Vec<usize>) =
-                    (0..fields_unnamed.unnamed.len())
-                        .into_iter()
-                        .map(|index| (index.to_string(), index))
-                        .unzip();
-                quote!{
-                    impl redis::ToRedisArgs for #type_ident {
-                        fn write_redis_args<W : ?Sized + redis::RedisWrite>(&self, out: &mut W) {
-                            #(
-                                match self.#idents.to_redis_args() {
-                                    redis_args if redis_args.len() == 1 => {
-                                        out.write_arg_fmt(#stringified_idents);
-                                        out.write_arg(&redis_args[0]);
-                                    },
-                                    redis_args => {
-                                        for args in redis_args.chunks(2) {
-                                            out.write_arg_fmt(format!("{}.{}", #stringified_idents, String::from_utf8(args[0].clone()).unwrap()));
-                                            out.write_arg(&args[1])
-                                        }
-                                    }
-                                }
-                            )*
-                        }
-                    }
-                }.into()
-            }
-            Fields::Unit => quote! {
-                impl redis::ToRedisArgs for #type_ident {
-                    fn write_redis_args<W : ?Sized + redis::RedisWrite>(&self, out: &mut W) {}
+            for field in &fields_named.named {
+                let field_ident = field.ident.as_ref().expect("Named field should have ident");
+                let field_attrs = util::parse_field_attributes(&field.attrs);
+
+                if field_attrs.skip {
+                    continue;
                 }
+
+                let field_name = util::transform_field_name(
+                    &field_ident.to_string(),
+                    attrs.rename_all.as_ref(),
+                    field_attrs.rename.as_ref(),
+                );
+
+                regular_fields.push((field_ident, field_name.clone()));
             }
-            .into(),
+
+            let (field_idents, field_names): (Vec<_>, Vec<_>) =
+                regular_fields.into_iter().unzip();
+
+            // Generate the basic ToRedisArgs implementation
+            let to_redis_impl = quote! {
+                impl redis::ToRedisArgs for #type_ident {
+                    fn write_redis_args<W: ?Sized + redis::RedisWrite>(&self, out: &mut W) {
+                        // Write each field as key-value pairs for hash storage
+                        #(
+                            out.write_arg(#field_names.as_bytes());
+                            (&self.#field_idents).write_redis_args(out);
+                        )*
+                    }
+
+                    fn num_of_args(&self) -> usize {
+                        let mut count = 0;
+                        #(
+                            count += 1; // field name
+                            count += (&self.#field_idents).num_of_args(); // field value args
+                        )*
+                        count
+                    }
+                }
+            };
+
+            to_redis_impl.into()
+        }
+        Fields::Unnamed(fields_unnamed) => {
+            let field_count = fields_unnamed.unnamed.len();
+            let indices: Vec<usize> = (0..field_count).collect();
+
+            let to_redis_impl = quote! {
+                impl redis::ToRedisArgs for #type_ident {
+                    fn write_redis_args<W: ?Sized + redis::RedisWrite>(&self, out: &mut W) {
+                        // Write tuple struct fields as an array
+                        #(
+                            (&self.#indices).write_redis_args(out);
+                        )*
+                    }
+
+                    fn num_of_args(&self) -> usize {
+                        let mut count = 0;
+                        #(
+                            count += (&self.#indices).num_of_args();
+                        )*
+                        count
+                    }
+                }
+            };
+
+            to_redis_impl.into()
+        }
+        Fields::Unit => {
+            let to_redis_impl = quote! {
+                impl redis::ToRedisArgs for #type_ident {
+                    fn write_redis_args<W: ?Sized + redis::RedisWrite>(&self, _out: &mut W) {
+                        // Unit structs don't write any args
+                    }
+
+                    fn num_of_args(&self) -> usize {
+                        0
+                    }
+                }
+            };
+
+            to_redis_impl.into()
         }
     }
 }
 
-impl DeriveFromRedisArgs for DataStruct {
-    fn derive_from_redis(
-        &self,
-        type_ident: Ident,
-        _attrs: ParsedAttributeMap,
-    ) -> proc_macro::TokenStream {
-        match &self.fields {
-            Fields::Named(fields_named) => {
-                let (stringified_idents, idents): (Vec<String>, Vec<&Ident>) = fields_named
-                    .named
-                    .iter()
-                    .map(|named_field| {
-                        let ident = named_field
-                            .ident
-                            .as_ref()
-                            .expect("there should be an ident on this field");
-                        (ident.to_string(), ident)
-                    })
-                    .unzip();
+pub fn derive_from_redis_struct(
+    data_struct: DataStruct,
+    type_ident: Ident,
+    attrs: ParsedAttributeMap,
+) -> proc_macro::TokenStream {
+    match &data_struct.fields {
+        Fields::Named(fields_named) => {
+            let mut regular_fields = Vec::new();
 
-                quote! {
-                    impl redis::FromRedisValue for #type_ident {
-                        fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
-                            match v {
-                                redis::Value::Bulk(bulk_data) if bulk_data.len() % 2 == 0 => {
-                                    let mut fields_hashmap = std::collections::HashMap::new();
-                                    for values in bulk_data.chunks(2) {
-                                        let full_identifier : String = redis::from_redis_value(&values[0])?;
-                                        match full_identifier.split_once(".") {
-                                            Some((field_identifier, split_of_section)) => {
-                                                match fields_hashmap.get_mut(field_identifier) {
-                                                    Some(redis::Value::Bulk(bulk)) => {
-                                                        bulk.push(redis::Value::Data(split_of_section.chars().map(|c| c as u8).collect()));
-                                                        bulk.push(values[1].clone())
-                                                    },
-                                                    _ => {
-                                                        let mut new_bulk : Vec<redis::Value> = Vec::new();
-                                                        new_bulk.push(redis::Value::Data(split_of_section.chars().map(|c| c as u8).collect()));
-                                                        new_bulk.push(values[1].clone());
-                                                        fields_hashmap.insert(field_identifier.to_owned(), redis::Value::Bulk(new_bulk));
-                                                    }
-                                                }
-                                            },
-                                            None => {
-                                                fields_hashmap.insert(full_identifier, values[1].clone());
-                                            }
-                                        }
-                                    }
-                                    Ok(Self {
-                                        #(#idents: redis::from_redis_value(
-                                                fields_hashmap.get(
-                                                    #stringified_idents
-                                                )
-                                                .unwrap_or(&redis::Value::Nil)
-                                            )?,
-                                        )*
-                                    })
-                                },
-                                _ => Err(redis::RedisError::from((
-                                    redis::ErrorKind::TypeError,
-                                    "the data returned from the redis database was not in the bulk data format or the length of the bulk data is not devisable by two"))
-                                )
-                            }
-                        }
-                    }
-                }.into()
+            for field in &fields_named.named {
+                let field_ident = field.ident.as_ref().expect("Named field should have ident");
+                let field_attrs = util::parse_field_attributes(&field.attrs);
+
+                if field_attrs.skip {
+                    continue;
+                }
+
+                let field_name = util::transform_field_name(
+                    &field_ident.to_string(),
+                    attrs.rename_all.as_ref(),
+                    field_attrs.rename.as_ref(),
+                );
+
+                regular_fields.push((field_ident, field_name));
             }
-            Fields::Unnamed(fields_unnamed) => {
-                let (stringified_idents, idents): (Vec<String>, Vec<usize>) =
-                    (0..fields_unnamed.unnamed.len())
-                        .into_iter()
-                        .map(|index| (index.to_string(), index))
-                        .unzip();
-                quote! {
-                    impl redis::FromRedisValue for #type_ident {
-                        fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
-                            match v {
-                                redis::Value::Bulk(bulk_data) if bulk_data.len() % 2 == 0 => {
-                                    let mut fields_hashmap = std::collections::HashMap::new();
-                                    for values in bulk_data.chunks(2) {
-                                        let full_identifier : String = redis::from_redis_value(&values[0])?;
-                                        match full_identifier.split_once(".") {
-                                            Some((field_identifier, split_of_section)) => {
-                                                match fields_hashmap.get_mut(field_identifier) {
-                                                    Some(redis::Value::Bulk(bulk)) => {
-                                                        bulk.push(redis::Value::Data(split_of_section.chars().map(|c| c as u8).collect()));
-                                                        bulk.push(values[1].clone())
-                                                    },
-                                                    _ => {
-                                                        let mut new_bulk : Vec<redis::Value> = Vec::new();
-                                                        new_bulk.push(redis::Value::Data(split_of_section.chars().map(|c| c as u8).collect()));
-                                                        new_bulk.push(values[1].clone());
-                                                        fields_hashmap.insert(field_identifier.to_owned(), redis::Value::Bulk(new_bulk));
-                                                    }
-                                                }
-                                            },
-                                            None => {
-                                                fields_hashmap.insert(full_identifier, values[1].clone());
-                                            }
-                                        }
-                                    }
-                                    Ok(Self {
-                                        #(
-                                            #idents: redis::from_redis_value(fields_hashmap.get(#stringified_idents)
-                                                .unwrap_or(&redis::Value::Nil)
-                                                )?,
-                                        )*
-                                    })
-                                },
-                                _ => Err(redis::RedisError::from((
-                                    redis::ErrorKind::TypeError,
-                                    "the data returned from the redis database was not in the bulk data format or the length of the bulk data is not devisable by two"))
-                                )
-                            }
-                        }
-                    }
-                }.into()
-            }
-            Fields::Unit => quote! {
+
+            let (field_idents, field_names): (Vec<_>, Vec<_>) =
+                regular_fields.into_iter().unzip();
+
+            let from_redis_impl = quote! {
                 impl redis::FromRedisValue for #type_ident {
                     fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
-                        #type_ident{}
+                        match v {
+                            redis::Value::Array(items) if items.len() % 2 == 0 => {
+                                let mut fields_map = std::collections::HashMap::new();
+                                
+                                // Parse key-value pairs from array
+                                for chunk in items.chunks(2) {
+                                    let key: String = redis::FromRedisValue::from_redis_value(&chunk[0])?;
+                                    fields_map.insert(key, &chunk[1]);
+                                }
+
+                                Ok(Self {
+                                    #(
+                                        #field_idents: {
+                                            match fields_map.get(#field_names) {
+                                                Some(value) => redis::FromRedisValue::from_redis_value(value)
+                                                    .map_err(|e| redis::RedisError::from((
+                                                        redis::ErrorKind::TypeError,
+                                                        "Failed to parse field",
+                                                        format!("Field '{}': {}", #field_names, e),
+                                                    )))?,
+                                                None => return Err(redis::RedisError::from((
+                                                    redis::ErrorKind::TypeError,
+                                                    "Missing required field",
+                                                    #field_names.to_string(),
+                                                ))),
+                                            }
+                                        },
+                                    )*
+                                })
+                            }
+                            redis::Value::Map(map) => {
+                                // Handle Redis hash/map type (RESP3)
+                                let mut fields_map = std::collections::HashMap::new();
+                                
+                                for (key, value) in map {
+                                    let key_str: String = redis::FromRedisValue::from_redis_value(key)?;
+                                    fields_map.insert(key_str, value);
+                                }
+
+                                Ok(Self {
+                                    #(
+                                        #field_idents: {
+                                            match fields_map.get(#field_names) {
+                                                Some(value) => redis::FromRedisValue::from_redis_value(value)
+                                                    .map_err(|e| redis::RedisError::from((
+                                                        redis::ErrorKind::TypeError,
+                                                        "Failed to parse field",
+                                                        format!("Field '{}': {}", #field_names, e),
+                                                    )))?,
+                                                None => return Err(redis::RedisError::from((
+                                                    redis::ErrorKind::TypeError,
+                                                    "Missing required field",
+                                                    #field_names.to_string(),
+                                                ))),
+                                            }
+                                        },
+                                    )*
+                                })
+                            }
+                            redis::Value::Nil => {
+                                Err(redis::RedisError::from((
+                                    redis::ErrorKind::TypeError,
+                                    "Cannot deserialize struct from nil value",
+                                )))
+                            }
+                            _ => {
+                                Err(redis::RedisError::from((
+                                    redis::ErrorKind::TypeError,
+                                    "Expected Array or Map for struct",
+                                )))
+                            }
+                        }
                     }
                 }
-            }
-            .into(),
+            };
+
+            from_redis_impl.into()
+        }
+        Fields::Unnamed(fields_unnamed) => {
+            let field_count = fields_unnamed.unnamed.len();
+            let indices: Vec<syn::Index> = (0..field_count)
+                .map(|i| syn::Index::from(i))
+                .collect();
+
+            let from_redis_impl = quote! {
+                impl redis::FromRedisValue for #type_ident {
+                    fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
+                        match v {
+                            redis::Value::Array(items) => {
+                                if items.len() != #field_count {
+                                    return Err(redis::RedisError::from((
+                                        redis::ErrorKind::TypeError,
+                                        "Array length mismatch",
+                                        format!("Expected {} elements, got {}", #field_count, items.len()),
+                                    )));
+                                }
+
+                                Ok(Self(
+                                    #(
+                                        redis::FromRedisValue::from_redis_value(&items[#indices])
+                                            .map_err(|e| redis::RedisError::from((
+                                                redis::ErrorKind::TypeError,
+                                                "Failed to parse tuple element",
+                                                format!("At index {}: {}", #indices, e),
+                                            )))?,
+                                    )*
+                                ))
+                            }
+                            redis::Value::Nil => {
+                                Err(redis::RedisError::from((
+                                    redis::ErrorKind::TypeError,
+                                    "Cannot deserialize tuple struct from nil",
+                                )))
+                            }
+                            _ => {
+                                Err(redis::RedisError::from((
+                                    redis::ErrorKind::TypeError,
+                                    "Expected Array for tuple struct",
+                                )))
+                            }
+                        }
+                    }
+                }
+            };
+
+            from_redis_impl.into()
+        }
+        Fields::Unit => {
+            let from_redis_impl = quote! {
+                impl redis::FromRedisValue for #type_ident {
+                    fn from_redis_value(_v: &redis::Value) -> redis::RedisResult<Self> {
+                        Ok(Self)
+                    }
+                }
+            };
+
+            from_redis_impl.into()
         }
     }
 }

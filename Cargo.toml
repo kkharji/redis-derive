@@ -1,6 +1,6 @@
 [package]
 name = "redis-derive"
-version = "0.1.7"
+version = "0.2.0"
 edition = "2021"
 authors = ["Michael van Straten", "kkharji"]
 repository = "https://github.com/kkharji/redis-derive"
@@ -12,11 +12,31 @@ description = "This crate implements the redis::FromRedisValue and redis::ToRedi
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-redis = "0.21.5"
-quote = "1.0.10"
-syn = { version = "1.0", features = ["extra-traits"] }
-heck = "0.4.1"
+# Redis client - minimum 0.32.4 for modern features
+redis = "0.32.4"
+
+# Procedural macro dependencies
+quote = "1.0"
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+proc-macro2 = "1.0"
+
+# String case conversion utilities
+heck = "0.5"
 
 [lib]
 proc-macro = true
 path = "src/lib.rs"
+
+
+# Examples demonstrating redis-derive usage
+[[example]]
+name = "main"
+path = "examples/main.rs"
+
+[[example]]
+name = "enum_branches"
+path = "examples/enum_branches.rs"
+
+[[example]]
+name = "debug_attributes"
+path = "examples/debug_attributes.rs"
