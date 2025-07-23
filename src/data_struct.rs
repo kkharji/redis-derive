@@ -211,7 +211,7 @@ pub fn derive_from_redis_struct(
         Fields::Unnamed(fields_unnamed) => {
             let field_count = fields_unnamed.unnamed.len();
             let indices: Vec<syn::Index> = (0..field_count)
-                .map(|i| syn::Index::from(i))
+                .map(syn::Index::from)
                 .collect();
 
             let from_redis_impl = quote! {

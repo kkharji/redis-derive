@@ -92,7 +92,7 @@ pub fn parse_field_attributes(attrs: &[Attribute]) -> FieldAttributes {
 /// Extract a quoted string value from tokens like: key = "value"
 fn extract_quoted_value(tokens: &str, key: &str) -> Option<String> {
     // Look for pattern: key = "value"
-    let pattern = format!("{} =", key);
+    let pattern = format!("{key} =");
     if let Some(start_pos) = tokens.find(&pattern) {
         let after_equals = &tokens[start_pos + pattern.len()..];
         
